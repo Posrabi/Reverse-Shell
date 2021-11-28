@@ -36,15 +36,26 @@ class Commands(Resource):
         t = threading.Thread(target=start_turtle(cmd))
         t.daemon = True  # stop running when the program stops
         t.start()
-        stat = response[-1]
+        stat = get_status()
         return {"cmd": f"{cmd}", "status": f"{stat}"}
 
     @marshal_with(resource_fields)
     def get(self):  # get current status
-        return {"cmd": "", "status": f"{response[-1]}"}
+        stat = get_status()
+        return {"cmd": "", "status": f"{stat}"}
 
 
 api.add_resource(Commands, "/")
+
+
+def get_status():  # getting the latest status of the connected terminal
+    try:
+        stat = response[-1]
+    except:
+        stat = "Status unavailable"
+    stat = stat.replace("\n", "")
+    stat = stat.replace("\r", "")
+    return stat
 
 # create a socket (allows two computer to connect)
 

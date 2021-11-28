@@ -25,3 +25,7 @@ print(response.json())
 time.sleep(5)
 response = requests.post(BASE, {"cmd": "echo a"})
 print(response.json())
+
+time.sleep(5)
+response = requests.get(BASE)
+print(response.json())
