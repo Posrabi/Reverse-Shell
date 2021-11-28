@@ -19,8 +19,13 @@ commands_args = reqparse.RequestParser()
 commands_args.add_argument(
     "cmd", type=str, help="Command required", required=True)
 
+commands_args.add_argument(
+    "status", type=str, help="Status not available", required=False
+)
+
 resource_fields = {
-    "cmd": fields.String
+    "cmd": fields.String,
+    "status": fields.String
 }
 
 
@@ -32,7 +37,11 @@ class Commands(Resource):
         t = threading.Thread(target=start_turtle(cmd))
         t.daemon = True  # stop running when the program stops
         t.start()
-        return {"cmd": {f"{cmd}"}}
+        return {"cmd": f"{cmd}"}
+
+    @marshal_with(resource_fields)
+    def get(self):  # get current status
+        pass
 
 
 api.add_resource(Commands, "/")
