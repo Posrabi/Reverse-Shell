@@ -33,6 +33,7 @@ class Commands(Resource):
     def post(self):
         data = commands_args.parse_args()
         cmd = data['cmd']
+        # create a thread to receive data and start_turtle
         t = threading.Thread(target=start_turtle(cmd))
         t.daemon = True  # stop running when the program stops
         t.start()
