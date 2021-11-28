@@ -10,18 +10,17 @@ JOB_NUMBER = [1, 2]
 queue = Queue()
 all_connections = []
 all_addresses = []
-
+response = []  # send the status back to who is maing the requests
+current_conn = []  # hold the conn to use for start_turtle
 # wrap everything with an api
 app = Flask(__name__)
 api = Api(app)
 
 commands_args = reqparse.RequestParser()
 commands_args.add_argument(
-    "cmd", type=str, help="Command required", required=True)
-
+    "cmd", type=str, help="Command required", required=False)
 commands_args.add_argument(
-    "status", type=str, help="Status not available", required=False
-)
+    "status", type=str, help="Status not available", required=False)
 
 resource_fields = {
     "cmd": fields.String,
@@ -37,11 +36,12 @@ class Commands(Resource):
         t = threading.Thread(target=start_turtle(cmd))
         t.daemon = True  # stop running when the program stops
         t.start()
-        return {"cmd": f"{cmd}"}
+        stat = response[-1]
+        return {"cmd": f"{cmd}", "status": f"{stat}"}
 
     @marshal_with(resource_fields)
     def get(self):  # get current status
-        pass
+        return {"cmd": "", "status": f"{response[-1]}"}
 
 
 api.add_resource(Commands, "/")
@@ -96,18 +96,17 @@ def socket_accept():
 
 
 # Interactive prompt for sending commands remotely
-a = []
-
 
 def start_turtle(cmd):
     if cmd == "list":
         list_connections()
     elif "select" in cmd:
         conn = get_target(cmd)
-        a.append(conn)
+        current_conn.append(conn)
+        del response[:]
     else:
         try:
-            send_target_commands(a[-1], cmd)
+            send_target_commands(current_conn[-1], cmd)
         except:
             print("Command not regconized")
 # display all current connections
@@ -123,6 +122,7 @@ def list_connections():
         except:
             del all_connections[i]
             del all_addresses[i]
+            del current_conn[:]
             continue
         # 0 is the ip address, 1 is the port number
         results += f"{i}   {all_addresses[i][0]}   {all_addresses[i][1]} \n"
@@ -150,6 +150,7 @@ def send_target_commands(conn, cmd):
         if len(str.encode(cmd)) > 0:
             conn.send(str.encode(cmd))
             client_response = conn.recv(4096).decode("utf-8")
+            response.append(client_response)
             print(client_response)
     except:
         print("Connetion was lost")
