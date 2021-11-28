@@ -10,7 +10,8 @@ def socket_create():
         global port
         global s
         s = socket.socket()
-        host = socket.gethostname()  # change this to server's ip address
+        # change this to server's ip address when porting this onto a server
+        host = socket.gethostname()
         port = 9999
     except socket.error as msg:
         print(f"Socket creation error: {msg}")
