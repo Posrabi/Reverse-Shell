@@ -30,10 +30,10 @@ resource_fields = {
 
 class Commands(Resource):
     @marshal_with(resource_fields)
-    def post(self):
+    def post(self):  # make commands to the clients
         data = commands_args.parse_args()
         cmd = data['cmd']
-        # create a thread to receive data and start_turtle
+        # create a thread to receive data and start sending commands to the client
         t = threading.Thread(target=start_turtle(cmd))
         t.daemon = True  # stop running when the program stops
         t.start()
@@ -176,7 +176,7 @@ def create_worker():
         t.daemon = True  # stop running when the program stops
         t.start()
 
-# do the next job in the queue(one handles connections, one handles commands)
+# do the next job in the queue(one handles running the api, one handles creating the socket)
 
 
 def work():
